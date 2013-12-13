@@ -1,0 +1,55 @@
+#!/bin/sh
+
+# Start or stop Flashcache
+
+### BEGIN INIT INFO
+# Provides:          flashcache
+# Required-Start:    mountkernfs 
+# Required-Stop:     mountkernfs umountroot 
+# Should-Start:      udev devfsd mdadm-raid lvm2
+# X-Start-Before:    checkfs 
+# X-Stop-After:      umountfs mdadm-raid
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: Flashcache SSD caching
+# Description:       Flashcache SSD caching
+### END INIT INFO
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+flashcache_start() {
+        cat /proc/partitions | grep -v 'name\|^$' | while read a b c P
+        do
+            if flashcache_load "/dev/$P"  2> /dev/null; then
+                echo "Loaded flashcache device from /dev/$P"
+            fi
+        done
+}
+
+flashcache_stop() {
+dmsetup ls --target flashcache| while read dev x y
+do
+    echo "Removing flashcache $dev"
+    dmsetup remove $dev
+done
+echo "Flashcache stopped"
+}
+
+
+case "$1" in
+    start)
+flashcache_start
+    ;;
+
+    stop)
+flashcache_stop
+    ;;
+
+    restart)
+        $0 stop
+        $0 start
+    ;;
+esac
+
+exit 0
+
